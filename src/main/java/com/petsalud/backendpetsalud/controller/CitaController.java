@@ -1,10 +1,14 @@
 package com.petsalud.backendpetsalud.controller;
 
 import com.petsalud.backendpetsalud.entity.Cita;
+import com.petsalud.backendpetsalud.exception.RecursoNoEncontradoException;
 import com.petsalud.backendpetsalud.service.CitaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,14 +27,18 @@ public class CitaController {
             @RequestParam String motivo) {
         LocalDateTime fechaHoraParsed = LocalDateTime.parse(fechaHora);
         Cita nuevaCita = citaService.agendarCita(mascotaId, veterinarioId, fechaHoraParsed, motivo);
-        return ResponseEntity.ok(nuevaCita);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(nuevaCita.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(nuevaCita);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Cita> obtenerCitaPorId(@PathVariable Long id) {
-        return citaService.obtenerCitaPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Cita cita = citaService.obtenerCitaPorId(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cita no encontrada"));
+        return ResponseEntity.ok(cita);
     }
 
     @PutMapping("/{id}/estado")
